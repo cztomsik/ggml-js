@@ -4,10 +4,13 @@ on: push
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: master
-      - run: zig build
+      - run: |
+          git submodule update --init
+          zig build -fsummary
+          zig build -Dtarget=x86_64-linux-gnu -fsummary
