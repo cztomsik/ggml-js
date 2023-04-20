@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -10,6 +10,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+
+    // libc
+    lib.linkLibC();
 
     // weak-linkage
     lib.linker_allow_shlib_undefined = true;
@@ -23,6 +26,10 @@ pub fn build(b: *std.Build) void {
 
     // build .dylib & copy as .node
     b.installArtifact(lib);
-    const copy_node_step = b.addInstallLibFile(lib.getOutputSource(), "ggml.node");
+    const copy_node_step = b.addInstallLibFile(lib.getOutputSource(), try std.fmt.allocPrint(
+        b.allocator,
+        "ggml.{s}.node",
+        .{@tagName(target.getOsTag())},
+    ));
     b.getInstallStep().dependOn(&copy_node_step.step);
 }

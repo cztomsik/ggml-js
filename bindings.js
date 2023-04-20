@@ -1,6 +1,12 @@
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
-const native = require('./zig-out/lib/ggml.node')
+
+const targets = {
+  darwin: 'macos',
+  linux: 'linux',
+  win32: 'windows',
+}
+const native = require(`./zig-out/lib/ggml.${targets[process.platform]}.node`)
 
 export const GGML_TYPE = Object.fromEntries(
   Object.entries(native)

@@ -10,6 +10,10 @@
   "exports": {
     ".": "./bindings.js"
   },
+  "files": [
+    "bindings.js",
+    "zig-out/lib/ggml.macos.node"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
