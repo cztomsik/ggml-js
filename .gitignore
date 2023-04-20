@@ -1,0 +1,5 @@
+zig-cache/
+zig-out/
+**/*~
+**/node_modules
+**/.DS_Store

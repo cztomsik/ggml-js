@@ -1,17 +1,3 @@
-# ggml-js
-JavaScript bindings for the [ggml](https://github.com/ggerganov/ggml) library.
-
-## Installation
-You can install ggml-js via npm:
-
-```bash
-npm install ggml-js
-```
-
-## Usage
-Here's an example of how to use ggml-js in your JavaScript code:
-
-```js
 import { Context } from 'ggml-js';
 
 // Initialize the context
@@ -39,7 +25,3 @@ graph.compute();
 
 // Print the result of the multiplication
 console.log(ab.get(0));
-```
-
-## License
-This project is licensed under the MIT License.
