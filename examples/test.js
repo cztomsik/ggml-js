@@ -1,4 +1,4 @@
-import { Context } from 'ggml-js';
+import { Context, F } from 'ggml-js';
 
 // Initialize the context
 const ctx = Context.init();
@@ -8,10 +8,10 @@ const a = ctx.newTensor1D('f32', 1);
 const b = ctx.newTensor1D('f32', 1);
 
 // Perform element-wise multiplication of a and b
-const ab = a.mul(b);
+const ab = F.mul(a, b);
 
 // Build the forward computation graph
-const graph = ab.buildForward();
+const graph = ctx.buildForward(ab);
 
 // Print the graph structure
 graph.print();

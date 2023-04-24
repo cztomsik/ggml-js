@@ -1,6 +1,6 @@
 {
   "name": "ggml-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JS bindings for the ggml library.",
   "keywords": [
     "ggml",
@@ -8,14 +8,16 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./bindings.js"
+    ".": "./lib.js"
   },
   "files": [
-    "bindings.js",
-    "zig-out/lib/ggml.macos.node"
+    "lib.js",
+    "zig-out/lib/ggml.macos.node",
+    "zig-out/lib/ggml.linux.node"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepack": "zig build -Doptimize=ReleaseSafe && zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu"
   },
   "repository": {
     "type": "git",

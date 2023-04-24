@@ -1,12 +1,10 @@
 import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 
-const targets = {
-  darwin: 'macos',
-  linux: 'linux',
-  win32: 'windows',
-}
+const targets = { darwin: 'macos', linux: 'linux', win32: 'windows' }
 const native = require(`./zig-out/lib/ggml.${targets[process.platform]}.node`)
+
+export const DEBUG = Symbol()
 
 export const GGML_TYPE = Object.fromEntries(
   Object.entries(native)
@@ -14,6 +12,9 @@ export const GGML_TYPE = Object.fromEntries(
     .map(([k, v]) => [k.slice(10).toLowerCase(), v])
 )
 
+/**
+ * GGML context.
+ */
 export class Context {
   /**
    * Initialize the context.
@@ -21,7 +22,7 @@ export class Context {
    */
   static init(opts = {}) {
     opts = {
-      mem_size: BigInt(1024),
+      mem_size: BigInt(1_000_000),
       mem_buffer: null,
       no_alloc: false,
       ...opts,
@@ -30,10 +31,12 @@ export class Context {
     return wrap(native.ggml_init(opts), Context)
   }
 
+  // internal
   wrapTensor(obj, type) {
     return (obj.context = this), (obj.type = type), wrap(obj, Tensor)
   }
 
+  // internal
   wrapGraph(obj) {
     return (obj.context = this), wrap(obj, Graph)
   }
@@ -88,14 +91,43 @@ export class Context {
   newF32(value) {
     return this.wrapTensor(native.ggml_new_f32(this, value))
   }
+
+  /**
+   * Build a graph for forward computation.
+   * @param {Tensor} tensor
+   * @returns {Graph}
+   */
+  buildForward(tensor) {
+    return this.wrapGraph(native.ggml_build_forward(tensor))
+  }
+
+  /**
+   * Print GGML objects
+   **/
+  printObjects() {
+    native.ggml_print_objects(this)
+  }
 }
 
+/**
+ * GGML tensor.
+ */
 export class Tensor {
-  type = null
-  context = null
+  type
+  context
 
+  /**
+   * @internal
+   * @returns {Tensor} */
   wrapNew(obj) {
     return this.context.wrapTensor(obj, this.type)
+  }
+
+  /**
+   * @internal
+   * @returns {number} */
+  nElements() {
+    return native.ggml_nelements(this)
   }
 
   /**
@@ -147,146 +179,156 @@ export class Tensor {
   }
 
   /**
-   * Add two tensors.
-   * @param {Tensor} other
-   * @returns {Tensor}
+   * Debug repr.
    */
-  add(other) {
-    return this.wrapNew(native.ggml_add(this.context, this, other))
-  }
-
-  /**
-   * Subtract two tensors.
-   * @param {Tensor} other
-   * @returns {Tensor}
-   */
-  sub(other) {
-    return this.wrapNew(native.ggml_sub(this.context, this, other))
-  }
-
-  /**
-   * Multiply two tensors.
-   * @param {Tensor} other
-   * @returns {Tensor}
-   */
-  mul(other) {
-    return this.wrapNew(native.ggml_mul(this.context, this, other))
-  }
-
-  /**
-   * Divide two tensors.
-   * @param {Tensor} other
-   * @returns {Tensor}
-   */
-  div(other) {
-    return this.wrapNew(native.ggml_div(this.context, this, other))
-  }
-
-  /**
-   * Compute square of a tensor.
-   * @returns {Tensor}
-   */
-  sqr() {
-    return this.wrapNew(native.ggml_sqr(this.context, this))
-  }
-
-  /**
-   * Compute square root of a tensor.
-   * @returns {Tensor}
-   */
-  sqrt() {
-    return this.wrapNew(native.ggml_sqrt(this.context, this))
-  }
-
-  /**
-   * Compute sum of all elements.
-   * @returns {Tensor}
-   */
-  sum() {
-    return this.wrapNew(native.ggml_sum(this.context, this))
-  }
-
-  /**
-   * Compute mean of all elements.
-   * @returns {Tensor}
-   */
-  mean() {
-    return this.wrapNew(native.ggml_mean(this.context, this))
-  }
-
-  /**
-   * Compute absolute value of a tensor.
-   * @returns {Tensor}
-   */
-  abs() {
-    return this.wrapNew(native.ggml_abs(this.context, this))
-  }
-
-  /**
-   * Compute sign of a tensor.
-   * @returns {Tensor}
-   */
-  sgn() {
-    return this.wrapNew(native.ggml_sgn(this.context, this))
-  }
-
-  /**
-   * Negate a tensor.
-   * @returns {Tensor}
-   */
-  neg() {
-    return this.wrapNew(native.ggml_neg(this.context, this))
-  }
-
-  /**
-   * Compute RELU of a tensor.
-   * @returns {Tensor}
-   */
-  relu() {
-    return this.wrapNew(native.ggml_relu(this.context, this))
-  }
-
-  /**
-   * Compute GELU of a tensor.
-   * @returns {Tensor}
-   */
-  gelu() {
-    return this.wrapNew(native.ggml_gelu(this.context, this))
-  }
-
-  /**
-   * Compute SiLU of a tensor.
-   * @returns {Tensor}
-   */
-  silu() {
-    return this.wrapNew(native.ggml_silu(this.context, this))
-  }
-
-  /**
-   * Normalize a tensor.
-   * @returns {Tensor}
-   */
-  norm() {
-    return this.wrapNew(native.ggml_norm(this.context, this))
-  }
-
-  /**
-   * Compute RMS Norm of a tensor.
-   * @returns {Tensor}
-   */
-  rmsNorm() {
-    return this.wrapNew(native.ggml_rms_norm(this.context, this))
-  }
-
-  /**
-   * Build a graph for forward computation.
-   * @returns {Graph}
-   */
-  buildForward() {
-    return this.context.wrapGraph(native.ggml_build_forward(this))
+  get [DEBUG]() {
+    return `Tensor(${this.type})`
   }
 }
 
+/**
+ * Functional interface.
+ * @satisfies {{ [k: string]: (...args: Tensor[]) => Tensor} }}
+ */
+export const F = {
+  /**
+   * Add two tensors.
+   */
+  add: (a, b) => a.wrapNew(native.ggml_add(a.context, a, b)),
+
+  /**
+   * Subtract two tensors.
+   */
+  sub: (a, b) => a.wrapNew(native.ggml_sub(a.context, a, b)),
+
+  /**
+   * Multiply two tensors.
+   */
+  mul: (a, b) => a.wrapNew(native.ggml_mul(a.context, a, b)),
+
+  /**
+   * Divide two tensors.
+   */
+  div: (a, b) => a.wrapNew(native.ggml_div(a.context, a, b)),
+
+  /**
+   * Compute square of a tensor.
+   */
+  sqr: input => input.wrapNew(native.ggml_sqr(input.context, input)),
+
+  /**
+   * Compute square root of a tensor.
+   */
+  sqrt: input => input.wrapNew(native.ggml_sqrt(input.context, input)),
+
+  /**
+   * Compute sum of all elements in a tensor.
+   */
+  sum: input => input.wrapNew(native.ggml_sum(input.context, input)),
+
+  /**
+   * Compute mean of all elements in a tensor.
+   */
+  mean: input => input.wrapNew(native.ggml_mean(input.context, input)),
+
+  /**
+   * Compute absolute value of a tensor.
+   */
+  abs: input => input.wrapNew(native.ggml_abs(input.context, input)),
+
+  /**
+   * Compute sign of a tensor.
+   */
+  sgn: input => input.wrapNew(native.ggml_sgn(input.context, input)),
+
+  /**
+   * Negate a tensor.
+   */
+  neg: input => input.wrapNew(native.ggml_neg(input.context, input)),
+
+  /**
+   * Compute RELU of a tensor.
+   */
+  relu: input => input.wrapNew(native.ggml_relu(input.context, input)),
+
+  /**
+   * Compute GELU of a tensor.
+   */
+  gelu: input => input.wrapNew(native.ggml_gelu(input.context, input)),
+
+  /**
+   * Compute SiLU of a tensor.
+   */
+  silu: input => input.wrapNew(native.ggml_silu(input.context, input)),
+
+  /**
+   * Normalize a tensor.
+   */
+  norm: input => input.wrapNew(native.ggml_norm(input.context, input)),
+
+  /**
+   * Compute RMS Norm of a tensor.
+   */
+  rmsNorm: input => input.wrapNew(native.ggml_rms_norm(input.context, input)),
+
+  /**
+   * Retrieve word embeddings from tensor of i32 indices.
+   */
+  embedding: (input, weight) => weight.wrapNew(native.ggml_get_rows(weight.context, weight, input)),
+}
+
+// debug
+for (const [k, f] of Object.entries(F)) {
+  F[k] = (...args) => (console.log(k, ...args.map(a => a[DEBUG] ?? a)), f(...args))
+}
+
+/**
+ * Utility base class. Provides loading & debug printing.
+ */
+export class Model {
+  /**
+   * Go through all tensors in the model and collect them with their names.
+   * @returns {Array<[string, Tensor]>}
+   */
+  collectTensors() {
+    const layers = []
+    const visit = (obj, prefix) => {
+      switch (true) {
+        case obj instanceof Tensor:
+          return layers.push([prefix.slice(0, -1), obj])
+        case obj instanceof Array:
+          return obj.forEach((v, i) => visit(v, `${prefix}${i}.`))
+        case obj instanceof Object:
+          return Object.getOwnPropertyNames(obj).forEach(k => visit(obj[k], `${prefix}${k}.`))
+        default:
+          throw new Error('Unknown type')
+      }
+    }
+    visit(this, '')
+
+    return layers
+  }
+
+  /**
+   * Print all tensors in the model.
+   */
+  print() {
+    const tensors = this.collectTensors()
+    const longestName = tensors.reduce((a, [k]) => Math.max(a, k.length), 0)
+
+    tensors.forEach(([k, v], i) => {
+      const num = `#${i}`.padEnd(5)
+      const name = k.padEnd(longestName)
+      const type = v.type.padEnd(5)
+      const count = v.nElements()
+      console.log(`${num} ${name} ${type} ${count}`)
+    })
+  }
+}
+
+/**
+ * GGML Graph.
+ */
 class Graph {
   context = null
 
