@@ -18,7 +18,6 @@ export const GGML_TYPE = Object.fromEntries(
 export class Context {
   /**
    * Initialize the context.
-   * @returns {Context}
    */
   static init(opts = {}) {
     opts = {
@@ -28,77 +27,48 @@ export class Context {
       ...opts,
     }
 
-    return wrap(native.ggml_init(opts), Context)
+    return wrap(Context, native.ggml_init(opts))
   }
 
   // internal
-  wrapTensor(obj, type) {
-    return (obj.context = this), (obj.type = type), wrap(obj, Tensor)
-  }
-
-  // internal
-  wrapGraph(obj) {
-    return (obj.context = this), wrap(obj, Graph)
+  newTensor(nativeFun, type, ...dims) {
+    return wrap(Tensor, nativeFun(this, GGML_TYPE[type], ...dims.map(BigInt)), { context: this })
   }
 
   /**
    * Create a new 1D tensor.
-   * @returns {Tensor}
    */
   newTensor1D(type, dim) {
-    return this.wrapTensor(native.ggml_new_tensor_1d(this, GGML_TYPE[type], big(dim)), type)
+    return this.newTensor(native.ggml_new_tensor_1d, type, dim)
   }
 
   /**
    * Create a new 2D tensor.
-   * @returns {Tensor}
    */
   newTensor2D(type, dim1, dim2) {
-    return this.wrapTensor(native.ggml_new_tensor_2d(this, GGML_TYPE[type], big(dim1), big(dim2)), type)
+    return this.newTensor(native.ggml_new_tensor_2d, type, dim1, dim2)
   }
 
   /**
    * Create a new 3D tensor.
-   * @returns {Tensor}
    */
   newTensor3D(type, dim1, dim2, dim3) {
-    return this.wrapTensor(native.ggml_new_tensor_3d(this, GGML_TYPE[type], big(dim1), big(dim2), big(dim3)), type)
+    return this.newTensor(native.ggml_new_tensor_3d, type, dim1, dim2, dim3)
   }
 
   /**
    * Create a new 4D tensor.
-   * @returns {Tensor}
    */
   newTensor4D(type, dim1, dim2, dim3, dim4) {
-    return this.wrapTensor(
-      native.ggml_new_tensor_4d(this, GGML_TYPE[type], big(dim1), big(dim2), big(dim3), big(dim4)),
-      type
-    )
-  }
-
-  /**
-   * Create a new 32-bit integer.
-   * @returns {Tensor}
-   */
-  newI32(value) {
-    return this.wrapTensor(native.ggml_new_i32(this, value))
-  }
-
-  /**
-   * Create a new 32-bit float.
-   * @returns {Tensor}
-   */
-  newF32(value) {
-    return this.wrapTensor(native.ggml_new_f32(this, value))
+    return this.newTensor(native.ggml_new_tensor_4d, type, dim1, dim2, dim3, dim4)
   }
 
   /**
    * Build a graph for forward computation.
    * @param {Tensor} tensor
-   * @returns {Graph}
    */
   buildForward(tensor) {
-    return this.wrapGraph(native.ggml_build_forward(tensor))
+    return wrap(Graph, native.ggml_build_forward(tensor), { context: this })
   }
 
   /**
@@ -113,21 +83,20 @@ export class Context {
  * GGML tensor.
  */
 export class Tensor {
-  type
   context
 
   /**
-   * @internal
-   * @returns {Tensor} */
-  wrapNew(obj) {
-    return this.context.wrapTensor(obj, this.type)
+   * Tensor type.
+   */
+  get type() {
+    return native.ggml_tensor_type(this)
   }
 
   /**
-   * @internal
-   * @returns {number} */
-  nElements() {
-    return native.ggml_nelements(this)
+   * Tensor shape.
+   */
+  get shape() {
+    return native.ggml_tensor_shape(this)
   }
 
   /**
@@ -182,9 +151,12 @@ export class Tensor {
    * Debug repr.
    */
   get [DEBUG]() {
-    return `Tensor(${this.type})`
+    return `${this.type}[${this.shape}]`
   }
 }
+
+// internal
+const callTensorOp = (nativeFun, a, ...rest) => wrap(Tensor, nativeFun(a.context, a, ...rest), { context: a.context })
 
 /**
  * Functional interface.
@@ -194,87 +166,97 @@ export const F = {
   /**
    * Add two tensors.
    */
-  add: (a, b) => a.wrapNew(native.ggml_add(a.context, a, b)),
+  add: (a, b) => callTensorOp(native.ggml_add, a, b),
 
   /**
    * Subtract two tensors.
    */
-  sub: (a, b) => a.wrapNew(native.ggml_sub(a.context, a, b)),
+  sub: (a, b) => callTensorOp(native.ggml_sub, a, b),
 
   /**
    * Multiply two tensors.
    */
-  mul: (a, b) => a.wrapNew(native.ggml_mul(a.context, a, b)),
+  mul: (a, b) => callTensorOp(native.ggml_mul, a, b),
 
   /**
    * Divide two tensors.
    */
-  div: (a, b) => a.wrapNew(native.ggml_div(a.context, a, b)),
+  div: (a, b) => callTensorOp(native.ggml_div, a, b),
 
   /**
    * Compute square of a tensor.
    */
-  sqr: input => input.wrapNew(native.ggml_sqr(input.context, input)),
+  sqr: input => callTensorOp(native.ggml_sqr, input),
 
   /**
    * Compute square root of a tensor.
    */
-  sqrt: input => input.wrapNew(native.ggml_sqrt(input.context, input)),
+  sqrt: input => callTensorOp(native.ggml_sqrt, input),
 
   /**
    * Compute sum of all elements in a tensor.
    */
-  sum: input => input.wrapNew(native.ggml_sum(input.context, input)),
+  sum: input => callTensorOp(native.ggml_sum, input),
 
   /**
    * Compute mean of all elements in a tensor.
    */
-  mean: input => input.wrapNew(native.ggml_mean(input.context, input)),
+  mean: input => callTensorOp(native.ggml_mean, input),
 
   /**
    * Compute absolute value of a tensor.
    */
-  abs: input => input.wrapNew(native.ggml_abs(input.context, input)),
+  abs: input => callTensorOp(native.ggml_abs, input),
 
   /**
    * Compute sign of a tensor.
    */
-  sgn: input => input.wrapNew(native.ggml_sgn(input.context, input)),
+  sgn: input => callTensorOp(native.ggml_sgn, input),
 
   /**
    * Negate a tensor.
    */
-  neg: input => input.wrapNew(native.ggml_neg(input.context, input)),
+  neg: input => callTensorOp(native.ggml_neg, input),
 
   /**
    * Compute RELU of a tensor.
    */
-  relu: input => input.wrapNew(native.ggml_relu(input.context, input)),
+  relu: input => callTensorOp(native.ggml_relu, input),
 
   /**
    * Compute GELU of a tensor.
    */
-  gelu: input => input.wrapNew(native.ggml_gelu(input.context, input)),
+  gelu: input => callTensorOp(native.ggml_gelu, input),
 
   /**
    * Compute SiLU of a tensor.
    */
-  silu: input => input.wrapNew(native.ggml_silu(input.context, input)),
+  silu: input => callTensorOp(native.ggml_silu, input),
 
   /**
    * Normalize a tensor.
    */
-  norm: input => input.wrapNew(native.ggml_norm(input.context, input)),
+  norm: input => callTensorOp(native.ggml_norm, input),
 
   /**
    * Compute RMS Norm of a tensor.
    */
-  rmsNorm: input => input.wrapNew(native.ggml_rms_norm(input.context, input)),
+  rmsNorm: input => callTensorOp(native.ggml_rms_norm, input),
 
   /**
    * Retrieve word embeddings from tensor of i32 indices.
    */
-  embedding: (input, weight) => weight.wrapNew(native.ggml_get_rows(weight.context, weight, input)),
+  embedding: (input, weight) => callTensorOp(native.ggml_get_rows, weight, input),
+
+  /**
+   * TODO: document this
+   */
+  repeat: (a, b) => callTensorOp(native.ggml_repeat, a, b),
+
+  /**
+   * Matrix multiplication.
+   */
+  matmul: (a, b) => callTensorOp(native.ggml_mul_mat, a, b),
 }
 
 // debug
@@ -320,8 +302,7 @@ export class Model {
       const num = `#${i}`.padEnd(5)
       const name = k.padEnd(longestName)
       const type = v.type.padEnd(5)
-      const count = v.nElements()
-      console.log(`${num} ${name} ${type} ${count}`)
+      console.log(`${num} ${name} ${type} ${v.shape}`)
     })
   }
 }
@@ -354,5 +335,6 @@ class Graph {
   }
 }
 
-const wrap = (obj, Clz) => (Object.setPrototypeOf(obj, Clz.prototype), obj)
+/** @type {<T extends new (...args: any[]) => any>(Clz: T, obj: any, ...extra: any[]) => InstanceType<T>} */
+const wrap = (Clz, obj, ...extra) => (Object.setPrototypeOf(obj, Clz.prototype), Object.assign(obj, ...extra))
 const big = v => BigInt(v)

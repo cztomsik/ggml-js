@@ -1,6 +1,9 @@
 const std = @import("std");
 const napigen = @import("napigen");
 
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+
 const ggml = @cImport({
     @cUndef("__ARM_NEON");
     @cInclude("ggml.h");
@@ -27,9 +30,14 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
             const T = @TypeOf(@field(ggml, d.name));
 
             if (@typeInfo(T) == .Fn) {
-                try js.setNamedProperty(exports, "" ++ d.name, try js.createFunction(@field(ggml, d.name)));
+                try js.setNamedProperty(exports, "" ++ d.name, try js.createNamedFunction("" ++ d.name, @field(ggml, d.name)));
             }
         }
+    }
+
+    // extensions
+    inline for (.{ "ggml_tensor_type", "ggml_tensor_shape" }) |name| {
+        try js.setNamedProperty(exports, name, try js.createNamedFunction(name, @field(@This(), name)));
     }
 
     return exports;
@@ -45,4 +53,12 @@ pub fn napigenWrite(js: *napigen.JsContext, value: anytype) !napigen.napi_value 
         },
         else => js.defaultWrite(value),
     };
+}
+
+pub fn ggml_tensor_type(tensor: *ggml.ggml_tensor) []const u8 {
+    return std.mem.span(ggml.ggml_type_name(tensor.type));
+}
+
+pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
+    return tensor.ne[0..@intCast(usize, tensor.n_dims)];
 }
