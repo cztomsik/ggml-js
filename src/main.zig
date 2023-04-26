@@ -36,7 +36,7 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
     }
 
     // extensions
-    inline for (.{ "ggml_tensor_type", "ggml_tensor_shape" }) |name| {
+    inline for (.{ "ggml_tensor_type", "ggml_tensor_shape", "safetensors_read_header", "safetensors_mmap" }) |name| {
         try js.setNamedProperty(exports, name, try js.createNamedFunction(name, @field(@This(), name)));
     }
 
@@ -45,9 +45,9 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
 
 pub fn napigenWrite(js: *napigen.JsContext, value: anytype) !napigen.napi_value {
     return switch (@TypeOf(value)) {
-        // whenever we return a ggml_cgraph, we don't want to return a copy of it, but the pointer to it
-        ggml.ggml_cgraph => {
-            var ptr = napigen.allocator.create(ggml.ggml_cgraph) catch unreachable;
+        // alloc a pointer and write the value to it
+        MmappedFile, ggml.ggml_cgraph => {
+            var ptr = napigen.allocator.create(@TypeOf(value)) catch unreachable;
             ptr.* = value;
             return js.write(ptr);
         },
@@ -62,3 +62,57 @@ pub fn ggml_tensor_type(tensor: *ggml.ggml_tensor) []const u8 {
 pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
     return tensor.ne[0..@intCast(usize, tensor.n_dims)];
 }
+
+pub fn safetensors_read_header(path: []const u8) ![]const u8 {
+    const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
+    defer file.close();
+
+    var reader = file.reader();
+    const header_size = try reader.readIntLittle(u64);
+
+    var buf = try allocator.alloc(u8, header_size);
+    _ = try reader.read(buf);
+
+    // TODO: allocator.free(buf);
+    return buf;
+}
+
+pub fn safetensors_mmap(path: []const u8, mappings: []const TensorMapping) !MmappedFile {
+    // open the file and mmap it
+    const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
+    const memory = try std.os.mmap(
+        null,
+        try file.getEndPos(),
+        std.os.PROT.READ,
+        std.os.MAP.PRIVATE,
+        file.handle,
+        0,
+    );
+
+    // go through the mappings and set the data pointers
+    for (mappings, 0..) |m, i| {
+        if (ggml.ggml_nbytes(m.tensor) != (m.end - m.start)) {
+            std.debug.print("tensor #{d} {s}{any} has size {d} it should be {d}\n", .{
+                i,
+                ggml.ggml_type_name(m.tensor.type),
+                ggml_tensor_shape(m.tensor),
+                ggml.ggml_nbytes(m.tensor),
+                (m.end - m.start),
+            });
+            return error.TensorSizeMismatch;
+        }
+
+        m.tensor.data = memory[m.start..m.end].ptr;
+    }
+
+    return .{ .file = file, .memory = memory };
+}
+
+// TODO: call this from JS (when the tensors are no longer needed)
+pub fn safetensors_mmap_close(file: MmappedFile) !void {
+    try std.os.munmap(file.memory);
+    file.file.close();
+}
+
+const TensorMapping = struct { tensor: *ggml.ggml_tensor, start: usize, end: usize };
+const MmappedFile = struct { file: std.fs.File, memory: []const u8 };

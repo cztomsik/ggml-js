@@ -8,10 +8,10 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./lib.js"
+    ".": "./lib/index.js"
   },
   "files": [
-    "lib.js",
+    "lib",
     "zig-out/lib/ggml.macos.node",
     "zig-out/lib/ggml.linux.node"
   ],
