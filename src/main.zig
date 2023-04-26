@@ -36,7 +36,15 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
     }
 
     // extensions
-    inline for (.{ "ggml_tensor_type", "ggml_tensor_shape", "safetensors_read_header", "safetensors_mmap" }) |name| {
+    inline for (.{
+        "ggml_tensor_type",
+        "ggml_tensor_shape",
+        "ggml_exp",
+        "ggml_sigmoid",
+        "ggml_one_minus_x",
+        "safetensors_read_header",
+        "safetensors_mmap",
+    }) |name| {
         try js.setNamedProperty(exports, name, try js.createNamedFunction(name, @field(@This(), name)));
     }
 
@@ -61,6 +69,36 @@ pub fn ggml_tensor_type(tensor: *ggml.ggml_tensor) []const u8 {
 
 pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
     return tensor.ne[0..@intCast(usize, tensor.n_dims)];
+}
+
+pub fn ggml_exp(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) *ggml.ggml_tensor {
+    return ggml.ggml_map_unary_f32(context, tensor, &exp);
+}
+
+fn exp(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
+    for (0..@intCast(usize, cols)) |i| {
+        dest[i] = std.math.exp(src[i]);
+    }
+}
+
+pub fn ggml_sigmoid(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) *ggml.ggml_tensor {
+    return ggml.ggml_map_unary_f32(context, tensor, &sigmoid);
+}
+
+fn sigmoid(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
+    for (0..@intCast(usize, cols)) |i| {
+        dest[i] = 1 / (1 + std.math.exp(-src[i]));
+    }
+}
+
+pub fn ggml_one_minus_x(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) *ggml.ggml_tensor {
+    return ggml.ggml_map_unary_f32(context, tensor, &one_minus_x);
+}
+
+fn one_minus_x(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
+    for (0..@intCast(usize, cols)) |i| {
+        dest[i] = 1 - src[i];
+    }
 }
 
 pub fn safetensors_read_header(path: []const u8) ![]const u8 {
