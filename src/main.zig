@@ -39,6 +39,7 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
     inline for (.{
         "ggml_tensor_type",
         "ggml_tensor_shape",
+        "ggml_max",
         "ggml_exp",
         "ggml_sigmoid",
         "ggml_one_minus_x",
@@ -71,13 +72,23 @@ pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
     return tensor.ne[0..@intCast(usize, tensor.n_dims)];
 }
 
+pub fn ggml_max(context: *ggml.ggml_context, a: *ggml.ggml_tensor, b: *ggml.ggml_tensor) *ggml.ggml_tensor {
+    return ggml.ggml_map_binary_f32(context, a, b, &max);
+}
+
+fn max(cols: c_int, dest: [*c]f32, a: [*c]const f32, b: [*c]const f32) callconv(.C) void {
+    for (0..@intCast(usize, cols)) |i| {
+        dest[i] = @max(a[i], b[i]);
+    }
+}
+
 pub fn ggml_exp(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) *ggml.ggml_tensor {
     return ggml.ggml_map_unary_f32(context, tensor, &exp);
 }
 
 fn exp(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
     for (0..@intCast(usize, cols)) |i| {
-        dest[i] = std.math.exp(src[i]);
+        dest[i] = @exp(src[i]);
     }
 }
 
@@ -87,7 +98,7 @@ pub fn ggml_sigmoid(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) *ggm
 
 fn sigmoid(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
     for (0..@intCast(usize, cols)) |i| {
-        dest[i] = 1 / (1 + std.math.exp(-src[i]));
+        dest[i] = 1 / (1 + @exp(-src[i]));
     }
 }
 

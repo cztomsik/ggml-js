@@ -1,4 +1,5 @@
 // based on https://johanwind.github.io/2023/03/23/rwkv_details.html
+// and https://github.com/BlinkDL/ChatRWKV/blob/main/RWKV_in_150_lines.py
 // - download https://huggingface.co/BlinkDL/rwkv-4-pile-169m/blob/main/RWKV-4-Pile-169M-20220807-8023.pth
 // - run `python convert.py <file>` to generate `.safetensors` file
 // - run `node rwkv.js <file>` to run the model
@@ -36,10 +37,11 @@ class Block extends Module {
 }
 
 class State extends Module {
-  tx = this.context.newTensor1D('f32', N_EMB)
-  cx = this.context.newTensor1D('f32', N_EMB)
-  num = this.context.newTensor1D('f32', N_EMB)
-  den = this.context.newTensor1D('f32', N_EMB)
+  cx = this.context.newTensor1D('f32', N_EMB).setAll(0)
+  tx = this.context.newTensor1D('f32', N_EMB).setAll(0)
+  aa = this.context.newTensor1D('f32', N_EMB).setAll(0)
+  bb = this.context.newTensor1D('f32', N_EMB).setAll(-1e30)
+  pp = this.context.newTensor1D('f32', N_EMB).setAll(0)
 }
 
 class TimeMix extends Module {
@@ -54,23 +56,29 @@ class TimeMix extends Module {
   output = new Linear(this, N_EMB, N_EMB, { bias: false })
 
   forward(x, prev) {
-    const k = this.key.forward(F.add(F.mul(x, this.time_mix_k), F.mul(prev.tx, F.oneMinusX(this.time_mix_k))))
-    const v = this.value.forward(F.add(F.mul(x, this.time_mix_v), F.mul(prev.tx, F.oneMinusX(this.time_mix_v))))
-    const r = this.receptance.forward(F.add(F.mul(x, this.time_mix_r), F.mul(prev.tx, F.oneMinusX(this.time_mix_r))))
+    const xk = F.add(F.mul(x, this.time_mix_k), F.mul(prev.tx, F.oneMinusX(this.time_mix_k)))
+    const xv = F.add(F.mul(x, this.time_mix_v), F.mul(prev.tx, F.oneMinusX(this.time_mix_v)))
+    const xr = F.add(F.mul(x, this.time_mix_r), F.mul(prev.tx, F.oneMinusX(this.time_mix_r)))
+    prev.tx = x
+    const r = F.sigmoid(this.receptance.forward(xr))
+    const k = this.key.forward(xk)
+    const v = this.value.forward(xv)
 
-    const wkv = F.div(
-      F.add(prev.num, F.mul(F.exp(F.add(this.time_first, k)), v)),
-      F.add(prev.den, F.exp(F.add(this.time_first, k)))
-    )
-    const rwkv = F.mul(F.sigmoid(r), wkv)
-
-    const num = F.add(F.mul(F.exp(F.neg(F.exp(this.time_decay))), prev.num), F.mul(F.exp(k), v))
-    const den = F.add(F.mul(F.exp(F.neg(F.exp(this.time_decay))), prev.den), F.exp(k))
-
-    // update state
-    Object.assign(prev, { tx: x, num, den })
-
-    return this.output.forward(rwkv)
+    let ww = F.add(this.time_first, k)
+    let qq = F.max(prev.pp, ww)
+    let e1 = F.exp(F.sub(prev.pp, qq))
+    let e2 = F.exp(F.sub(ww, qq))
+    const a = F.add(F.mul(e1, prev.aa), F.mul(e2, v))
+    const b = F.add(F.mul(e1, prev.bb), e2)
+    const wkv = F.div(a, b)
+    ww = F.add(prev.pp, this.time_decay)
+    qq = F.max(ww, k)
+    e1 = F.exp(F.sub(ww, qq))
+    e2 = F.exp(F.sub(k, qq))
+    prev.aa = F.add(F.mul(e1, prev.aa), F.mul(e2, v))
+    prev.bb = F.add(F.mul(e1, prev.bb), e2)
+    prev.pp = qq
+    return this.output.forward(F.mul(r, wkv))
   }
 }
 
@@ -85,28 +93,44 @@ class ChannelMix extends Module {
     const k = this.key.forward(F.add(F.mul(x, this.time_mix_k), F.mul(prev.cx, F.oneMinusX(this.time_mix_k))))
     const r = this.receptance.forward(F.add(F.mul(x, this.time_mix_r), F.mul(prev.cx, F.oneMinusX(this.time_mix_r))))
     const vk = this.value.forward(F.square(F.relu(k)))
-
-    // update state
     prev.cx = x
-
     return F.mul(F.sigmoid(r), vk)
   }
 }
 
-// this one is mmapped
 // TODO: no_alloc: true, this is currently broken (unary functions like F.fun(mmappedX))
 const ctx = Context.init({ mem_size: BigInt(700_000_000) })
 const model = new RWKV(ctx)
 model.loadFromFile(process.argv[2])
-model.print()
+// model.print()
 
-// this one allocates
-const ctx2 = Context.init({ mem_size: BigInt(100_000_000) })
-const x = ctx2.newTensor1D('i32', 1)
-x.set(0, 1)
+// RNN only has one input
+const x = ctx.newTensor1D('i32', 1)
 
-const out = model.forward(x)
+// Prepare the graph
+const out = F.softmax(model.forward(x))
 const graph = ctx.buildForward(out)
-console.log(out.get(0))
+
+// push few tokens from from https://raw.githubusercontent.com/BlinkDL/RWKV-LM/main/RWKV-v4/20B_tokenizer.json
+x.set(0, 12092) // `Hello`
+graph.compute()
+x.set(0, 1533) // `Ġworld`
+graph.compute()
+x.set(0, 2) // `!`
+graph.compute()
+x.set(0, 831) // `ĠThis`
+graph.compute()
+x.set(0, 310) // `Ġis`
+graph.compute()
+x.set(0, 247) // `Ġa`
+graph.compute()
+
+// sample
+for (let i = 0; i < N_VOCAB; i++) {
+  const p = out.get(i)
+  if (p > 0.1) {
+    console.log('p', p, 'i', i)
+  }
+}
 
 console.log('done')
