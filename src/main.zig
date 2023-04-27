@@ -145,6 +145,9 @@ pub fn safetensors_mmap(path: []const u8, mappings: []const TensorMapping) !Mmap
         0,
     );
 
+    var reader = file.reader();
+    const offset = @intCast(usize, try reader.readIntLittle(u64)) + @sizeOf(u64);
+
     // go through the mappings and set the data pointers
     for (mappings, 0..) |m, i| {
         if (ggml.ggml_nbytes(m.tensor) != (m.end - m.start)) {
@@ -158,7 +161,7 @@ pub fn safetensors_mmap(path: []const u8, mappings: []const TensorMapping) !Mmap
             return error.TensorSizeMismatch;
         }
 
-        m.tensor.data = memory[m.start..m.end].ptr;
+        m.tensor.data = memory[offset + m.start .. offset + m.end].ptr;
     }
 
     return .{ .file = file, .memory = memory };

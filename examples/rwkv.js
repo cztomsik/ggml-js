@@ -90,11 +90,12 @@ class ChannelMix extends Module {
   value = new Linear(this, 4 * N_EMB, N_EMB, { bias: false })
 
   forward(x, [prev_x], updates) {
-    const k = this.key.forward(F.add(F.mul(x, this.time_mix_k), F.mul(prev_x, F.oneMinusX(this.time_mix_k))))
-    const r = this.receptance.forward(F.add(F.mul(x, this.time_mix_r), F.mul(prev_x, F.oneMinusX(this.time_mix_r))))
-    const vk = this.value.forward(F.square(F.relu(k)))
+    const xk = F.add(F.mul(x, this.time_mix_k), F.mul(prev_x, F.oneMinusX(this.time_mix_k)))
+    const xr = F.add(F.mul(x, this.time_mix_r), F.mul(prev_x, F.oneMinusX(this.time_mix_r)))
+    const r = F.sigmoid(this.receptance.forward(xr))
+    const k = F.square(F.relu(this.key.forward(xk)))
     updates.push([prev_x, x])
-    return F.mul(F.sigmoid(r), vk)
+    return F.mul(r, this.value.forward(k))
   }
 }
 
