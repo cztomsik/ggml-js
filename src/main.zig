@@ -43,6 +43,7 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
         "ggml_exp",
         "ggml_sigmoid",
         "ggml_one_minus_x",
+        "ggml_memcpy",
         "safetensors_read_header",
         "safetensors_mmap",
     }) |name| {
@@ -109,6 +110,12 @@ pub fn ggml_one_minus_x(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) 
 fn one_minus_x(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
     for (0..@intCast(usize, cols)) |i| {
         dest[i] = 1 - src[i];
+    }
+}
+
+pub fn ggml_memcpy(dest: *ggml.ggml_tensor, src: *ggml.ggml_tensor) void {
+    for (0..ggml.ggml_nbytes(dest)) |i| {
+        @ptrCast([*c]u8, dest.data.?)[i] = @ptrCast([*c]u8, src.data.?)[i];
     }
 }
 

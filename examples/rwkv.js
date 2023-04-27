@@ -71,10 +71,11 @@ class TimeMix extends Module {
     e2 = F.exp(F.sub(k, qq))
 
     updates.push(
-      F.cpy(prev_x, x),
-      F.cpy(aa, F.add(F.mul(e1, aa), F.mul(e2, v))),
-      F.cpy(bb, F.add(F.mul(e1, bb), e2)),
-      F.cpy(pp, qq)
+      // dest, src
+      [prev_x, x],
+      [aa, F.add(F.mul(e1, aa), F.mul(e2, v))],
+      [bb, F.add(F.mul(e1, bb), e2)],
+      [pp, qq]
     )
 
     return this.output.forward(F.mul(r, wkv))
@@ -92,7 +93,7 @@ class ChannelMix extends Module {
     const k = this.key.forward(F.add(F.mul(x, this.time_mix_k), F.mul(prev_x, F.oneMinusX(this.time_mix_k))))
     const r = this.receptance.forward(F.add(F.mul(x, this.time_mix_r), F.mul(prev_x, F.oneMinusX(this.time_mix_r))))
     const vk = this.value.forward(F.square(F.relu(k)))
-    updates.push(F.cpy(prev_x, x))
+    updates.push([prev_x, x])
     return F.mul(F.sigmoid(r), vk)
   }
 }
