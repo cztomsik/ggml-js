@@ -2,15 +2,16 @@
 // and https://github.com/BlinkDL/ChatRWKV/blob/main/RWKV_in_150_lines.py
 // and https://github.com/saharNooby/rwkv.cpp
 //
+// - download https://raw.githubusercontent.com/BlinkDL/RWKV-LM/main/RWKV-v4neo/20B_tokenizer.json
 // - download https://huggingface.co/BlinkDL/rwkv-4-pile-169m/blob/main/RWKV-4-Pile-169M-20220807-8023.pth
 // - run `python convert.py <file>` to generate `.safetensors` file
-// - run `node rwkv.js <file>` to run the model
+// - run `node rwkv.js <model.safetensors> <tokenizer.json>` to run the model
 
-import { Context, LLM, Module, Embedding, LayerNorm, Linear, F } from 'ggml-js'
+import { Context, CausalLM, Module, Embedding, LayerNorm, Linear, F, Tokenizer } from 'ggml-js'
 
 const [N_VOCAB, N_EMB, N_LAYER] = [50277, 768, 12]
 
-class RWKV extends LLM {
+class RWKV extends CausalLM {
   [`blocks.0.ln0`] = new LayerNorm(this, N_EMB)
   emb = new Embedding(this, N_VOCAB, N_EMB)
   blocks = Array.from(Array(N_LAYER), _ => new Block(this))
@@ -105,12 +106,12 @@ const model = new RWKV(ctx)
 model.loadFromFile(process.argv[2])
 // model.print()
 
-// push few tokens from from https://raw.githubusercontent.com/BlinkDL/RWKV-LM/main/RWKV-v4/20B_tokenizer.json
-const tokens = [`Hello`, `Ġworld`, `!`, `ĠThis`, `Ġis`, `Ġa`]
+// push few tokens
+const tokenizer = Tokenizer.fromFile(process.argv[3])
 const ids = [12092, 1533, 2, 831, 310, 247]
 
-for (const predictions of model.generate(ids)) {
-  console.log(predictions)
+for (const t of model.generate(ids)) {
+  process.stdout.write(tokenizer.decode([t]))
 }
 
 console.log('done')
