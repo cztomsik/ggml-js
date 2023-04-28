@@ -3,4 +3,5 @@ zig-out/
 **/*~
 **/node_modules
 **/.DS_Store
-**/*.safetensors
+examples/*.safetensors
+examples/20B_tokenizer.json
