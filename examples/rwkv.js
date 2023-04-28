@@ -18,7 +18,7 @@ class RWKV extends CausalLM {
   ln_out = new LayerNorm(this, N_EMB)
   head = new Linear(this, N_EMB, N_VOCAB, { bias: false })
   #state = Array.from(Array(N_LAYER * 5), (_, i) =>
-    this.context.newTensor1D('f32', N_EMB).setAll(i % 5 === 3 ? -1e30 : 0)
+    this.context.newTensor1D('f32', N_EMB).setAll(i % 5 === 4 ? -1e30 : 0)
   )
 
   forward(x, updates = []) {
@@ -116,5 +116,3 @@ const ids = [
 for (const t of model.generate(ids)) {
   process.stdout.write(tokenizer.decodeOne(t))
 }
-
-console.log('done')
