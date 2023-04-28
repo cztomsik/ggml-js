@@ -2,6 +2,9 @@
 
 JavaScript bindings for the [ggml](https://github.com/ggerganov/ggml) library.
 
+[RWKV example](https://github.com/cztomsik/ggml-js/blob/main/examples/rwkv.js)
+https://user-images.githubusercontent.com/3526922/235147373-1d3b7205-8c4c-4654-940c-78a4baeb4fad.mov
+
 ## Installation
 
 You can install ggml-js via npm:
