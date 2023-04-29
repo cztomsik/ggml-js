@@ -3,5 +3,6 @@ zig-out/
 **/*~
 **/node_modules
 **/.DS_Store
+examples/*.pth
 examples/*.safetensors
-examples/20B_tokenizer.json
+examples/*.json
