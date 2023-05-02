@@ -24,11 +24,9 @@ import { Context, F } from 'ggml-js'
 // Initialize the context
 const ctx = Context.init()
 
-// Create new 1D tensors a and b
+// Create 1D tensors and multiply them
 const a = ctx.newTensor1D('f32', 1)
 const b = ctx.newTensor1D('f32', 1)
-
-// Perform element-wise multiplication of a and b
 const ab = F.mul(a, b)
 
 // Build the forward computation graph
@@ -37,17 +35,17 @@ const graph = ctx.buildForward(ab)
 // Print the graph structure
 graph.print()
 
-// Set values for tensors a and b
+// Set values & compute the graph
 a.set(0, 1.5)
 b.set(0, 2)
-
-// Compute the graph
 graph.compute()
 
-// Print the result of the multiplication
+// Get result
 console.log(ab.get(0))
 ```
 
 ## License
 
 This project is licensed under the MIT License.
+
+This project bundles [GGML](https://github.com/ggerganov/ggml) library by **Georgi Gerganov**, which is also licensed under the MIT License.
