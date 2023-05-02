@@ -1,6 +1,6 @@
 {
   "name": "ggml-js",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "JS bindings for the ggml library.",
   "keywords": [
     "ggml",
@@ -8,7 +8,9 @@
   ],
   "type": "module",
   "exports": {
-    ".": "./lib/index.js"
+    "./core": "./lib/core/index.js",
+    "./llms": "./lib/llms/index.js",
+    "./tokenizers": "./lib/tokenizers/index.js"
   },
   "files": [
     "lib",

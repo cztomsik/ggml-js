@@ -45,7 +45,7 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
 pub fn napigenWrite(js: *napigen.JsContext, value: anytype) !napigen.napi_value {
     return switch (@TypeOf(value)) {
         // alloc a pointer and write the value to it
-        safetensors.MmappedFile, ggml.ggml_cgraph => {
+        safetensors.SafeTensors, ggml.ggml_cgraph => {
             var ptr = napigen.allocator.create(@TypeOf(value)) catch unreachable;
             ptr.* = value;
             return js.write(ptr);

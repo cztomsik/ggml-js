@@ -1,32 +1,20 @@
-// TODO: this is just PoC, maybe we could change the API to something like:
-//
-//       safetensors_open(path: []const u8) !SafetensorsFile
-//       safetensors_close(file: SafetensorsFile) !void
-//       safetensors_get_header(file: SafetensorsFile) ![]const u8
-//       ...
-//
-//       that way we could have just a single handle to the file and we could
-//       avoid that extra allocation/freeing for the header
-
 const std = @import("std");
 const ggml = @import("ggml.zig");
-const allocator = @import("root").allocator;
 
-pub fn safetensors_read_header(path: []const u8) ![]const u8 {
-    const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
-    defer file.close();
+pub const SafeTensors = struct {
+    file: std.fs.File,
+    memory: []align(std.mem.page_size) const u8,
+    header: []u8,
+    data: []u8,
+};
 
-    var reader = file.reader();
-    const header_size = try reader.readIntLittle(u64);
+pub const TensorMapping = struct {
+    tensor: *ggml.ggml_tensor,
+    start: usize,
+    end: usize,
+};
 
-    var buf = try allocator.alloc(u8, header_size);
-    _ = try reader.read(buf);
-
-    // TODO: allocator.free(buf);
-    return buf;
-}
-
-pub fn safetensors_mmap(path: []const u8, mappings: []const TensorMapping) !MmappedFile {
+pub fn safetensors_open(path: []const u8) !SafeTensors {
     // open the file and mmap it
     const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
     const memory = try std.os.mmap(
@@ -39,8 +27,22 @@ pub fn safetensors_mmap(path: []const u8, mappings: []const TensorMapping) !Mmap
     );
 
     var reader = file.reader();
-    const offset = @intCast(usize, try reader.readIntLittle(u64)) + @sizeOf(u64);
+    const header_start = @sizeOf(u64);
+    const header_size = @intCast(usize, try reader.readIntLittle(u64));
 
+    return .{
+        .file = file,
+        .memory = memory,
+        .header = memory[header_start .. header_start + header_size],
+        .data = memory[header_start + header_size ..],
+    };
+}
+
+pub fn safetensors_header(file: *SafeTensors) []const u8 {
+    return file.header;
+}
+
+pub fn safetensors_load(file: *SafeTensors, mappings: []const TensorMapping) !void {
     // go through the mappings and set the data pointers
     for (mappings, 0..) |m, i| {
         if (ggml.ggml_nbytes(m.tensor) != (m.end - m.start)) {
@@ -54,17 +56,12 @@ pub fn safetensors_mmap(path: []const u8, mappings: []const TensorMapping) !Mmap
             return error.TensorSizeMismatch;
         }
 
-        m.tensor.data = memory[offset + m.start .. offset + m.end].ptr;
+        m.tensor.data = file.data[m.start..m.end].ptr;
     }
-
-    return .{ .file = file, .memory = memory };
 }
 
-// TODO: call this from JS (when the tensors are no longer needed)
-// pub fn safetensors_mmap_close(file: MmappedFile) void {
+// TODO: call this from JS (when none of the tensors are used anymore)
+// pub fn safetensors_mmap_close(file: *SafeTensors) void {
 //     std.os.munmap(file.memory);
 //     file.file.close();
 // }
-
-pub const TensorMapping = struct { tensor: *ggml.ggml_tensor, start: usize, end: usize };
-pub const MmappedFile = struct { file: std.fs.File, memory: []align(std.mem.page_size) const u8 };

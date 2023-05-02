@@ -1,4 +1,4 @@
-import { Context, F } from 'ggml-js'
+import { Context, F } from 'ggml-js/core'
 
 // Initialize the context
 const ctx = Context.init()
