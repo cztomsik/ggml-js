@@ -9,11 +9,11 @@
 //    and `<tokenizer>` is the path to the downloaded `.json` file
 
 import { RWKV } from 'ggml-js/llms'
-import { Tokenizer } from 'ggml-js/tokenizers'
+import { BPETokenizer } from 'ggml-js/tokenizers'
 
 // Load the model and tokenizer
 const model = RWKV.loadFromFile(process.argv[2])
-const tokenizer = Tokenizer.loadFromFile(process.argv[3])
+const tokenizer = BPETokenizer.loadFromFile(process.argv[3])
 
 // Generate text and print it one token at a time
 for (const t of model.generate(tokenizer.encode('\nHello world!'))) {
