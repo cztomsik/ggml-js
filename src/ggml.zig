@@ -67,16 +67,6 @@ fn sigmoid(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
     }
 }
 
-pub fn ggml_one_minus_x(context: *ggml.ggml_context, tensor: *ggml.ggml_tensor) *ggml.ggml_tensor {
-    return ggml.ggml_map_unary_f32(context, tensor, &one_minus_x);
-}
-
-fn one_minus_x(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
-    for (0..@intCast(usize, cols)) |i| {
-        dest[i] = 1 - src[i];
-    }
-}
-
 pub fn ggml_memcpy(dest: *ggml.ggml_tensor, src: *ggml.ggml_tensor) void {
     for (0..ggml.ggml_nbytes(dest)) |i| {
         @ptrCast([*c]u8, dest.data.?)[i] = @ptrCast([*c]u8, src.data.?)[i];
