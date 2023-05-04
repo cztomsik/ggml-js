@@ -1,6 +1,7 @@
 import argparse
 import os
 import torch
+from torch.nn import functional as F
 from safetensors.torch import save_file
 
 parser = argparse.ArgumentParser(
@@ -20,6 +21,13 @@ for k in w.keys():
     else:
         w[k] = w[k].float()  # convert to f32 type
 
+# precompute LN0 for embeddings
+w['emb.weight'] = F.layer_norm(
+    w['emb.weight'], (w['emb.weight'].shape[1],), w['blocks.0.ln0.weight'], w['blocks.0.ln0.bias'])
+del w['blocks.0.ln0.weight']
+del w['blocks.0.ln0.bias']
+
+for k in w.keys():
     print(f'{k}, shape {w[k].shape}, type {w[k].dtype}')
 
 file, _ = os.path.splitext(args.src_file)
