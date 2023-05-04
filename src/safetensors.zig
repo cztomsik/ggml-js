@@ -42,7 +42,7 @@ pub fn safetensors_header(file: *SafeTensors) []const u8 {
     return file.header;
 }
 
-pub fn safetensors_load(file: *SafeTensors, mappings: []const TensorMapping) !void {
+pub fn safetensors_load_tensors(file: *SafeTensors, mappings: []const TensorMapping) !void {
     // go through the mappings and set the data pointers
     for (mappings, 0..) |m, i| {
         if (ggml.ggml_nbytes(m.tensor) != (m.end - m.start)) {
