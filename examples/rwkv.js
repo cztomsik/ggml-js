@@ -4,6 +4,7 @@
 //    - https://huggingface.co/BlinkDL/rwkv-4-pile-169m/blob/main/RWKV-4-Pile-169M-20220807-8023.pth
 // 2. Run `python rwkv-convert.py <checkpoint>` to generate `.safetensors` file
 //    where `<checkpoint>` is the path to the downloaded `.pth` file
+//    you can also pass --mtype f16 for smaller file size
 // 3. Run `node rwkv.js <model> <tokenizer>` to run the model
 //    where `<model>` is the path to the generated `.safetensors` file
 //    and `<tokenizer>` is the path to the downloaded `.json` file
