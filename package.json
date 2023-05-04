@@ -1,6 +1,6 @@
 {
   "name": "ggml-js",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "JS bindings for the ggml library.",
   "keywords": [
     "ggml",
