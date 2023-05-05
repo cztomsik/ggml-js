@@ -11,7 +11,7 @@ pub fn sample_top_k_top_p(probs_tensor: *ggml.ggml_tensor, top_k: u32, top_p: f3
 
     if (temperature != 1.0) {
         for (probs) |*p| {
-            p.* /= temperature;
+            p.* = std.math.pow(f32, p.*, 1 / temperature);
         }
     }
 
