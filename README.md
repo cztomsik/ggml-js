@@ -5,7 +5,7 @@ fast and lightweight tensor/machine-learning library implemented in C.
 
 [RWKV example](https://github.com/cztomsik/ggml-js/blob/main/examples/rwkv.js)
 
-https://user-images.githubusercontent.com/3526922/235147373-1d3b7205-8c4c-4654-940c-78a4baeb4fad.mov
+https://user-images.githubusercontent.com/3526922/236536800-fca4d729-3479-471a-aea5-2d0ae5df3fdf.mov
 
 ## Installation
 
