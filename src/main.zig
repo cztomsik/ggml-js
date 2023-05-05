@@ -2,6 +2,7 @@ const std = @import("std");
 const napigen = @import("napigen");
 const ggml = @import("ggml.zig");
 const safetensors = @import("safetensors.zig");
+const sampling = @import("sampling.zig");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 pub const allocator = gpa.allocator();
@@ -36,6 +37,13 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
     inline for (comptime std.meta.declarations(safetensors)) |d| {
         if (comptime std.mem.startsWith(u8, d.name, "safetensors_")) {
             try js.setNamedProperty(exports, d.name ++ "", try js.createNamedFunction(d.name ++ "", @field(safetensors, d.name)));
+        }
+    }
+
+    // extensions
+    inline for (comptime std.meta.declarations(sampling)) |d| {
+        if (comptime std.mem.startsWith(u8, d.name, "sample_")) {
+            try js.setNamedProperty(exports, d.name ++ "", try js.createNamedFunction(d.name ++ "", @field(sampling, d.name)));
         }
     }
 

@@ -1,6 +1,7 @@
 # ggml-js
 
-JavaScript bindings for the [ggml](https://github.com/ggerganov/ggml) library.
+JavaScript bindings for the [GGML](https://github.com/ggerganov/ggml) library, a
+fast and lightweight tensor/machine-learning library implemented in C.
 
 [RWKV example](https://github.com/cztomsik/ggml-js/blob/main/examples/rwkv.js)
 
@@ -14,26 +15,21 @@ You can install ggml-js via npm:
 npm install ggml-js
 ```
 
-## Usage
+## Basic usage
 
 Here's an example of how to use ggml-js in your JavaScript code:
 
 ```js
-import { Context, F } from 'ggml-js'
+import { Context, F } from 'ggml-js/core'
 
-// Initialize the context
+// Create context, two 1D tensors and multiply them
 const ctx = Context.init()
-
-// Create 1D tensors and multiply them
 const a = ctx.newTensor1D('f32', 1)
 const b = ctx.newTensor1D('f32', 1)
 const ab = F.mul(a, b)
 
-// Build the forward computation graph
+// Build the computation graph
 const graph = ctx.buildForward(ab)
-
-// Print the graph structure
-graph.print()
 
 // Set values & compute the graph
 a.set(0, 1.5)
@@ -42,6 +38,31 @@ graph.compute()
 
 // Get result
 console.log(ab.get(0))
+```
+
+## Advanced usage
+
+ggml-js also provides modules for working with pre-trained models and tokenizers. Here's an example of how to use the RWKV model and BPETokenizer:
+
+```js
+import { RWKV } from 'ggml-js/llms'
+import { BPETokenizer } from 'ggml-js/tokenizers'
+
+// see examples/rwkv.js for full example
+const model = RWKV.loadFromFile(...)
+const tokenizer = BPETokenizer.loadFromFile(...)
+
+for (const t of model.generate(tokenizer.encode('Hello world!'))) {
+  process.stdout.write(tokenizer.decodeOne(t))
+}
+```
+
+# Building From Source
+
+If you want to build ggml-js from source, you can clone the repository and run the following commands:
+
+```bash
+zig build
 ```
 
 ## License
