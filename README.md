@@ -15,7 +15,7 @@ You can install ggml-js via npm:
 npm install ggml-js
 ```
 
-## Basic usage
+## Basic Usage
 
 Here's an example of how to use ggml-js in your JavaScript code:
 
@@ -40,7 +40,7 @@ graph.compute()
 console.log(ab.get(0))
 ```
 
-## Advanced usage
+## Advanced Usage
 
 ggml-js also provides modules for working with pre-trained models and tokenizers. Here's an example of how to use the RWKV model and BPETokenizer:
 
@@ -57,7 +57,7 @@ for (const t of model.generate(tokenizer.encode('Hello world!'))) {
 }
 ```
 
-# Building From Source
+## Building From Source
 
 If you want to build ggml-js from source, you can clone the repository and run the following commands:
 
