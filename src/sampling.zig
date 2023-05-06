@@ -2,8 +2,14 @@ const std = @import("std");
 const root = @import("root");
 const ggml = @import("ggml.zig");
 
-var prng = std.rand.DefaultPrng.init(123);
+// cat /dev/random | head -c 8 | xxd -p
+var prng = std.rand.DefaultPrng.init(0xaf5ac6d71a92c1bc);
 var random = prng.random();
+
+pub fn sample_seed(seed: u64) void {
+    prng = std.rand.DefaultPrng.init(seed);
+    random = prng.random();
+}
 
 pub fn sample_top_k_top_p(probs_tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, temperature: f32) !u32 {
     var ptr = @ptrCast([*]f32, @alignCast(@alignOf(f32), probs_tensor.data));
