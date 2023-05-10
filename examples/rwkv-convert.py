@@ -1,5 +1,6 @@
 import argparse
 import os
+import json
 import torch
 from torch.nn import functional as F
 from safetensors.torch import save_file
@@ -40,8 +41,17 @@ for k in w.keys():
 for k in w.keys():
     print(f'{k}, shape {w[k].shape}, type {w[k].dtype}')
 
+metadata = {
+    'hparams': json.dumps({
+        'vocab_size': w['emb.weight'].shape[0],
+        'embed_dim': w['emb.weight'].shape[1],
+        'num_layers': sum(x.endswith('.ln1.weight') for x in w.keys()),
+    })
+}
+print(metadata)
+
 file, _ = os.path.splitext(args.src_file)
 file = file + '.safetensors'
 
 print('Saving to %s' % file)
-save_file(w, file)
+save_file(w, file, metadata=metadata)
