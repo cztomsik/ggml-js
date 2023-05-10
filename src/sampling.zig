@@ -2,9 +2,8 @@ const std = @import("std");
 const root = @import("root");
 const ggml = @import("ggml.zig");
 
-// cat /dev/random | head -c 8 | xxd -p
-var prng = std.rand.DefaultPrng.init(0xaf5ac6d71a92c1bc);
-var random = prng.random();
+var prng: std.rand.DefaultPrng = undefined;
+var random = std.crypto.random;
 
 pub fn sample_seed(seed: u64) void {
     prng = std.rand.DefaultPrng.init(seed);
