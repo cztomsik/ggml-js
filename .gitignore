@@ -3,6 +3,7 @@ zig-out/
 **/*~
 **/node_modules
 **/.DS_Store
+examples/*.bin
 examples/*.pth
 examples/*.safetensors
 examples/*.json
