@@ -3,9 +3,9 @@ import { Context, F } from 'ggml-js/core'
 // Initialize the context
 const ctx = Context.init()
 
-// Create 1D tensors and multiply them
-const a = ctx.newTensor1D('f32', 1)
-const b = ctx.newTensor1D('f32', 1)
+// Create two 1D tensors and multiply them
+const a = ctx.newTensor('f32', 1)
+const b = ctx.newTensor('f32', 1)
 const ab = F.mul(a, b)
 
 // Build the forward computation graph
