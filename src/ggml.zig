@@ -66,9 +66,3 @@ fn sigmoid(cols: c_int, dest: [*c]f32, src: [*c]const f32) callconv(.C) void {
         dest[i] = 1 / (1 + @exp(-src[i]));
     }
 }
-
-pub fn ggml_memcpy(dest: *ggml.ggml_tensor, src: *ggml.ggml_tensor) void {
-    for (0..ggml.ggml_nbytes(dest)) |i| {
-        @ptrCast([*c]u8, dest.data.?)[i] = @ptrCast([*c]u8, src.data.?)[i];
-    }
-}
