@@ -18,6 +18,8 @@ pub fn build(b: *std.Build) !void {
     lib.linker_allow_shlib_undefined = true;
 
     // ggml
+    // lib.linkFramework("Accelerate");
+    // lib.defineCMacroRaw("GGML_USE_ACCELERATE=1");
     lib.addIncludePath("deps/ggml/include/ggml");
     lib.addCSourceFile("deps/ggml/src/ggml.c", &.{ "-std=c11", "-pthread" });
 

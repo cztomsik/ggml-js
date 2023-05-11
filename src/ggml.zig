@@ -2,6 +2,8 @@ const std = @import("std");
 
 const ggml = @cImport({
     @cUndef("__ARM_NEON");
+    @cDefine("GGML_ASSERT(x)", "(x || abort())");
+    @cInclude("stdlib.h");
     @cInclude("ggml.h");
 });
 

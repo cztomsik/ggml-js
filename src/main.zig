@@ -17,6 +17,7 @@ fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) !napigen.napi
         // constants
         if (comptime std.mem.startsWith(u8, d.name, "GGML_")) {
             if (comptime std.mem.eql(u8, d.name, "GGML_RESTRICT")) continue;
+            if (comptime std.mem.eql(u8, d.name, "GGML_ASSERT")) continue;
 
             try js.setNamedProperty(exports, d.name ++ "", try js.write(@field(ggml, d.name)));
         }
