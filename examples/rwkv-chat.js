@@ -18,4 +18,6 @@ while (true) {
   for (const t of model.generate(tokens)) {
     process.stdout.write(tokenizer.decodeOne(t))
   }
+
+  process.stdout.write('\n')
 }
