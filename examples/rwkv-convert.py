@@ -26,7 +26,7 @@ for k in w.keys():
 
 # precompute LN0 for embeddings
 w['emb.weight'] = F.layer_norm(
-    w['emb.weight'], (w['emb.weight'].shape[1],), w['blocks.0.ln0.weight'], w['blocks.0.ln0.bias'])
+    w['emb.weight'].float(), (w['emb.weight'].shape[1],), w['blocks.0.ln0.weight'].float(), w['blocks.0.ln0.bias'].float())
 del w['blocks.0.ln0.weight']
 del w['blocks.0.ln0.bias']
 
