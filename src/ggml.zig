@@ -11,8 +11,8 @@ const ggml = @cImport({
 // re-export everything
 pub usingnamespace ggml;
 
-pub fn ggml_tensor_type(tensor: *ggml.ggml_tensor) []const u8 {
-    return std.mem.span(ggml.ggml_type_name(tensor.type));
+pub fn ggml_tensor_type(tensor: *ggml.ggml_tensor) ggml.ggml_type {
+    return tensor.type;
 }
 
 pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
