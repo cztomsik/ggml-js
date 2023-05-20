@@ -42,7 +42,7 @@ metadata = {
         'num_layers': sum(x.endswith('.input_layernorm.weight') for x in w.keys()),
         # TODO
         'num_heads': 8,
-        'num_rot': 2,
+        'num_rot': 16,
     })
 }
 print(metadata)
