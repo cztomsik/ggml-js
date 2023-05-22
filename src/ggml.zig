@@ -20,24 +20,13 @@ pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
 }
 
 pub fn ggml_argmax(tensor: *ggml.ggml_tensor) !u32 {
-    if (tensor.n_dims == 2 and tensor.ne[0] == 1) {
+    if (tensor.n_dims == 2 and tensor.ne[1] != 1) {
         return error.NotImplemented;
     }
 
-    if (tensor.type != ggml.GGML_TYPE_F32) {
-        return error.NotImplemented;
-    }
-
-    var data = @ptrCast([*c]f32, @alignCast(@alignOf(f32), tensor.data));
-    var max_val = data[0];
-    var max_index: usize = 0;
-    for (0..@intCast(usize, tensor.ne[0])) |i| {
-        if (data[i] > max_val) {
-            max_val = data[i];
-            max_index = i;
-        }
-    }
-    return @intCast(u32, max_index);
+    var ptr = ggml.ggml_get_data_f32(tensor);
+    var data = ptr[0..@intCast(usize, tensor.ne[0])];
+    return @intCast(u32, std.sort.argMax(f32, data, {}, std.sort.asc(f32)) orelse 0);
 }
 
 pub fn ggml_max(context: *ggml.ggml_context, a: *ggml.ggml_tensor, b: *ggml.ggml_tensor) *ggml.ggml_tensor {
