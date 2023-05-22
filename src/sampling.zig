@@ -35,7 +35,7 @@ pub fn sample_top_k_top_p(probs_tensor: *ggml.ggml_tensor, top_k: u32, top_p: f3
         if (cumsum >= top_p) break;
     }
 
-    // erase everything below
+    // erase everything below and renormalize
     for (probs) |*p| {
         if (p.* < cutoff) p.* = 0;
         p.* /= cumsum;
