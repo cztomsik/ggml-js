@@ -16,7 +16,7 @@ pub fn sample_top_k_top_p(tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, tem
     var list = try prepare_candidates(tensor);
     defer list.deinit();
 
-    sort_by(list.items, .prob);
+    sort_by(list.items, .prob, std.sort.desc(f32));
 
     if (top_k < list.items.len) {
         list.shrinkRetainingCapacity(top_k);
@@ -33,6 +33,9 @@ pub fn sample_top_k_top_p(tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, tem
             it.prob = std.math.pow(f32, it.prob, 1 / temperature);
         }
     }
+
+    // restore original order
+    sort_by(list.items, .id, std.sort.asc(u32));
 
     return pick(list.items).id;
 }
@@ -56,11 +59,14 @@ fn prepare_candidates(tensor: *ggml.ggml_tensor) !std.ArrayList(Candidate) {
     return std.ArrayList(Candidate).fromOwnedSlice(root.allocator, items);
 }
 
-fn sort_by(items: []Candidate, comptime field: std.meta.FieldEnum(Candidate)) void {
+fn sort_by(items: []Candidate, comptime field: std.meta.FieldEnum(Candidate), comptime comparator: anytype) void {
     const Sort = struct {
         pub fn compare(context: void, a: Candidate, b: Candidate) bool {
-            _ = context;
-            return @field(a, @tagName(field)) > @field(b, @tagName(field));
+            return comparator(
+                context,
+                @field(a, @tagName(field)),
+                @field(b, @tagName(field)),
+            );
         }
     };
     std.sort.sort(Candidate, items, {}, Sort.compare);
