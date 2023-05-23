@@ -20,7 +20,7 @@ pub fn ggml_tensor_shape(tensor: *ggml.ggml_tensor) []const i64 {
 }
 
 pub fn ggml_argmax(tensor: *ggml.ggml_tensor) !u32 {
-    if (tensor.n_dims == 2 and tensor.ne[1] != 1) {
+    if (tensor.n_dims > 2 or (tensor.n_dims == 2 and tensor.ne[1] != 1)) {
         return error.NotImplemented;
     }
 
