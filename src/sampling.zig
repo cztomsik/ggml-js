@@ -2,6 +2,8 @@ const std = @import("std");
 const root = @import("root");
 const ggml = @import("ggml.zig");
 
+const Candidate = struct { id: u32, prob: f32 };
+
 var prng: std.rand.DefaultPrng = undefined;
 var random = std.crypto.random;
 
@@ -10,35 +12,79 @@ pub fn sample_seed(seed: u64) void {
     random = prng.random();
 }
 
-pub fn sample_top_k_top_p(probs_tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, temperature: f32) !u32 {
-    var ptr = ggml.ggml_get_data_f32(probs_tensor);
-    var probs = ptr[0..@intCast(usize, probs_tensor.ne[0])];
+pub fn sample_top_k_top_p(tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, temperature: f32) !u32 {
+    var list = try prepare_candidates(tensor);
+    defer list.deinit();
+
+    sort_by(list.items, .prob);
+
+    if (top_k < list.items.len) {
+        list.shrinkRetainingCapacity(top_k);
+    }
+
+    if (top_p < 1) {
+        if (find_cutoff(list.items, top_p)) |i| {
+            list.shrinkRetainingCapacity(i + 1);
+        }
+    }
 
     if (temperature != 1.0) {
-        for (probs) |*p| {
-            p.* = std.math.pow(f32, p.*, 1 / temperature);
+        for (list.items) |*it| {
+            it.prob = std.math.pow(f32, it.prob, 1 / temperature);
         }
     }
 
-    var sorted_probs = try root.allocator.dupe(f32, probs);
-    defer root.allocator.free(sorted_probs);
-    std.sort.sort(f32, sorted_probs, {}, std.sort.desc(f32));
-
-    // find cutoff value (either top_k or top_p)
-    var cumsum: f32 = 0;
-    for (sorted_probs, 1..) |p, i| {
-        cumsum += p;
-
-        if (i == top_k or cumsum >= top_p) {
-            break cut_off(probs, p);
-        }
-    }
-
-    return @truncate(u32, random.weightedIndex(f32, probs));
+    return pick(list.items).id;
 }
 
-fn cut_off(probs: []f32, cutoff: f32) void {
-    for (probs) |*p| {
-        if (p.* < cutoff) p.* = 0;
+fn prepare_candidates(tensor: *ggml.ggml_tensor) !std.ArrayList(Candidate) {
+    var ptr = ggml.ggml_get_data_f32(tensor);
+    var probs = ptr[0..@intCast(usize, tensor.ne[0])];
+    var items = try root.allocator.alloc(Candidate, probs.len);
+
+    if (probs.len == 0) {
+        return error.InvalidInput;
     }
+
+    for (items, 0..) |*it, i| {
+        it.* = .{
+            .id = @intCast(u32, i),
+            .prob = probs[i],
+        };
+    }
+
+    return std.ArrayList(Candidate).fromOwnedSlice(root.allocator, items);
+}
+
+fn sort_by(items: []Candidate, comptime field: std.meta.FieldEnum(Candidate)) void {
+    const Sort = struct {
+        pub fn compare(context: void, a: Candidate, b: Candidate) bool {
+            _ = context;
+            return @field(a, @tagName(field)) > @field(b, @tagName(field));
+        }
+    };
+    std.sort.sort(Candidate, items, {}, Sort.compare);
+}
+
+fn pick(items: []const Candidate) Candidate {
+    var sum: f32 = 0;
+    for (items) |it| sum += it.prob;
+
+    const i = find_cutoff(
+        items,
+        std.math.min(random.float(f32) * sum, sum - std.math.epsilon(f32)),
+    ).?;
+
+    return items[i];
+}
+
+fn find_cutoff(items: []const Candidate, point: f32) ?usize {
+    var sum: f32 = 0;
+
+    for (items, 0..) |it, i| {
+        sum += it.prob;
+        if (sum > point) return i;
+    }
+
+    return null;
 }
