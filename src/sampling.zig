@@ -97,7 +97,7 @@ fn sort_by(items: []Candidate, comptime field: std.meta.FieldEnum(Candidate), co
             );
         }
     };
-    std.sort.sort(Candidate, items, {}, Sort.compare);
+    std.mem.sort(Candidate, items, {}, Sort.compare);
 }
 
 fn pick(items: []const Candidate) Candidate {
