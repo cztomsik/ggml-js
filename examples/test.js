@@ -1,3 +1,4 @@
+import assert from 'assert'
 import { Context, F } from 'ggml-js/core'
 
 // Initialize the context
@@ -20,4 +21,6 @@ b.set(0, 2)
 graph.compute()
 
 // Get result
-console.log(ab.get(0))
+const res = ab.get(0)
+assert(res === 3)
+console.log(res)

@@ -18,7 +18,7 @@
     "zig-out/lib/ggml.linux.node"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node examples/test",
     "prepack": "zig build -Doptimize=ReleaseSafe && zig build -Doptimize=ReleaseSafe -Dtarget=x86_64-linux-gnu"
   },
   "repository": {
