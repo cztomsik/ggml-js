@@ -70,7 +70,7 @@ pub fn sample_top_k_top_p(tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, tem
 
 fn prepare_candidates(tensor: *ggml.ggml_tensor) !std.ArrayList(Candidate) {
     var ptr = ggml.ggml_get_data_f32(tensor);
-    var probs = ptr[0..@intCast(usize, tensor.ne[0])];
+    var probs = ptr[0..@intCast(tensor.ne[0])];
     var items = try root.allocator.alloc(Candidate, probs.len);
 
     if (probs.len == 0) {
@@ -79,7 +79,7 @@ fn prepare_candidates(tensor: *ggml.ggml_tensor) !std.ArrayList(Candidate) {
 
     for (items, 0..) |*it, i| {
         it.* = .{
-            .id = @intCast(u32, i),
+            .id = @intCast(i),
             .prob = probs[i],
         };
     }
@@ -106,7 +106,7 @@ fn pick(items: []const Candidate) Candidate {
 
     const i = find_cutoff(
         items,
-        std.math.min(random.float(f32) * sum, sum - std.math.epsilon(f32)),
+        @min(random.float(f32) * sum, sum - std.math.floatEps(f32)),
     ).?;
 
     return items[i];

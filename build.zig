@@ -20,8 +20,8 @@ pub fn build(b: *std.Build) !void {
     // ggml
     // lib.linkFramework("Accelerate");
     // lib.defineCMacroRaw("GGML_USE_ACCELERATE=1");
-    lib.addIncludePath("deps/ggml/include/ggml");
-    lib.addCSourceFile("deps/ggml/src/ggml.c", &.{ "-std=c11", "-pthread" });
+    lib.addIncludePath(.{ .path = "deps/ggml/include/ggml" });
+    lib.addCSourceFile(.{ .file = .{ .path = "deps/ggml/src/ggml.c" }, .flags = &.{ "-std=c11", "-pthread" } });
 
     const napigen = b.createModule(.{ .source_file = .{ .path = "deps/napigen/napigen.zig" } });
     lib.addModule("napigen", napigen);

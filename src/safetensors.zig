@@ -29,7 +29,7 @@ pub fn safetensors_open(path: []const u8) !SafeTensors {
 
     var reader = file.reader();
     const header_start = @sizeOf(u64);
-    const header_size = @intCast(usize, try reader.readIntLittle(u64));
+    const header_size: usize = @intCast(try reader.readIntLittle(u64));
 
     return .{
         .file = file,
@@ -52,9 +52,9 @@ pub fn safetensors_load_tensors(file: *SafeTensors, mappings: []const TensorMapp
         copy.data = file.data[m.start..m.end].ptr;
         copy.nb = std.mem.zeroes(@TypeOf(copy.nb));
         copy.nb[0] = ggml.ggml_type_size(m.type);
-        copy.nb[1] = copy.nb[0] * @intCast(usize, @divTrunc(copy.ne[0], @as(i64, ggml.ggml_blck_size(m.type))));
+        copy.nb[1] = copy.nb[0] * @as(usize, @intCast(@divTrunc(copy.ne[0], @as(i64, ggml.ggml_blck_size(m.type)))));
         for (2..copy.nb.len) |bi| {
-            copy.nb[bi] = copy.nb[bi - 1] * @intCast(usize, copy.ne[bi - 1]);
+            copy.nb[bi] = copy.nb[bi - 1] * @as(usize, @intCast(copy.ne[bi - 1]));
         }
 
         if (ggml.ggml_nbytes(&copy) != (m.end - m.start)) {
