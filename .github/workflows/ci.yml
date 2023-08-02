@@ -13,4 +13,4 @@ jobs:
       - run: |
           git submodule update --init
           zig build -fsummary
-          zig build -Dtarget=x86_64-linux-gnu -fsummary
+          zig build -Dtarget=x86_64-linux-gnu --summary all
