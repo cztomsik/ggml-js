@@ -1,10 +1,15 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 const ggml = @cImport({
     // NEON is supported, this is just for the @cImport
     @cUndef("__ARM_NEON");
     @cDefine("GGML_ASSERT(x)", "(x || abort())");
     @cInclude("ggml.h");
+
+    if (builtin.os.tag == .macos) {
+        @cInclude("ggml-metal.h");
+    }
 });
 
 // re-export everything

@@ -18,10 +18,24 @@ pub fn build(b: *std.Build) !void {
     lib.linker_allow_shlib_undefined = true;
 
     // ggml
-    // lib.linkFramework("Accelerate");
-    // lib.defineCMacroRaw("GGML_USE_ACCELERATE=1");
     lib.addIncludePath(.{ .path = "deps/ggml/include/ggml" });
+    lib.addIncludePath(.{ .path = "deps/ggml/src" });
     lib.addCSourceFile(.{ .file = .{ .path = "deps/ggml/src/ggml.c" }, .flags = &.{ "-std=c11", "-pthread" } });
+
+    // Use Metal on macOS
+    if (target.getOsTag() == .macos) {
+        lib.defineCMacroRaw("GGML_USE_METAL");
+        lib.defineCMacroRaw("GGML_METAL_NDEBUG");
+        lib.addCSourceFiles(&.{"deps/ggml/src/ggml-metal.m"}, &.{"-std=c11"});
+        lib.linkFramework("Foundation");
+        lib.linkFramework("Metal");
+        lib.linkFramework("MetalKit");
+        lib.linkFramework("MetalPerformanceShaders");
+
+        // copy the *.metal file so that it can be loaded at runtime
+        const copy_metal_step = b.addInstallLibFile(.{ .path = "deps/ggml/src/ggml-metal.metal" }, "ggml-metal.metal");
+        b.getInstallStep().dependOn(&copy_metal_step.step);
+    }
 
     const napigen = b.createModule(.{ .source_file = .{ .path = "deps/napigen/napigen.zig" } });
     lib.addModule("napigen", napigen);

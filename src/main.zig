@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const napigen = @import("napigen");
 const ggml = @import("ggml.zig");
 const safetensors = @import("safetensors.zig");
@@ -12,6 +13,10 @@ comptime {
 }
 
 fn initModule(js: *napigen.JsContext, exports: napigen.napi_value) napigen.Error!napigen.napi_value {
+    if (builtin.os.tag == .macos) {
+        _ = ggml.ggml_metal_init(1);
+    }
+
     @setEvalBranchQuota(100_000);
     inline for (comptime std.meta.declarations(ggml)) |d| {
         if (comptime !std.ascii.startsWithIgnoreCase(d.name, "ggml_") or
