@@ -1,4 +1,4 @@
-> This project is temporarily **on hold**.
+> This project is temporarily **on hold**.\
 > I am now working on **[Ava, Personal Language Server](http://www.avapls.com/)**, a GUI app for running LLMs.
 
 # ggml-js
