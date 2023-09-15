@@ -1,3 +1,6 @@
+> This project is temporarily **on hold**.
+> I am now working on **[Ava, Personal Language Server](http://www.avapls.com/)**, a GUI app for running LLMs.
+
 # ggml-js
 
 JavaScript bindings for the [GGML](https://github.com/ggerganov/ggml) library, a
