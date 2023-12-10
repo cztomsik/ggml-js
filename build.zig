@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) !void {
     if (target.getOsTag() == .macos) {
         lib.defineCMacroRaw("GGML_USE_METAL");
         lib.defineCMacroRaw("GGML_METAL_NDEBUG");
-        lib.addCSourceFiles(&.{"deps/ggml/src/ggml-metal.m"}, &.{"-std=c11"});
+        lib.addCSourceFiles(.{ .files = &.{"deps/ggml/src/ggml-metal.m"}, .flags = &.{"-std=c11"} });
         lib.linkFramework("Foundation");
         lib.linkFramework("Metal");
         lib.linkFramework("MetalKit");

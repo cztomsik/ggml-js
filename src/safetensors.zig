@@ -29,7 +29,7 @@ pub fn safetensors_open(path: []const u8) !SafeTensors {
 
     var reader = file.reader();
     const header_start = @sizeOf(u64);
-    const header_size: usize = @intCast(try reader.readIntLittle(u64));
+    const header_size: usize = @intCast(try reader.readInt(u64, .little));
 
     return .{
         .file = file,

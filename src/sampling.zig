@@ -21,7 +21,7 @@ pub fn sample_typical(tensor: *ggml.ggml_tensor, temperature: f32, tau: f32) !u3
     for (list.items) |it| entropy += -it.prob * @log(it.prob);
 
     // compute shifted_scores & sort
-    for (list.items) |*it| it.score = @fabs(-@log(it.prob) - entropy);
+    for (list.items) |*it| it.score = @abs(-@log(it.prob) - entropy);
     sort_by(list.items, .score, std.sort.desc(f32));
 
     if (find_cutoff(list.items, tau)) |i| {
@@ -70,8 +70,8 @@ pub fn sample_top_k_top_p(tensor: *ggml.ggml_tensor, top_k: u32, top_p: f32, tem
 
 fn prepare_candidates(tensor: *ggml.ggml_tensor) !std.ArrayList(Candidate) {
     var ptr = ggml.ggml_get_data_f32(tensor);
-    var probs = ptr[0..@intCast(tensor.ne[0])];
-    var items = try root.allocator.alloc(Candidate, probs.len);
+    const probs = ptr[0..@intCast(tensor.ne[0])];
+    const items = try root.allocator.alloc(Candidate, probs.len);
 
     if (probs.len == 0) {
         return error.InvalidInput;

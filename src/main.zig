@@ -43,7 +43,7 @@ pub fn napigenWrite(js: *napigen.JsContext, value: anytype) !napigen.napi_value 
     return switch (@TypeOf(value)) {
         // alloc a pointer and write the value to it
         safetensors.SafeTensors, ggml.ggml_cgraph, ggml.ggml_cplan => {
-            var ptr = napigen.allocator.create(@TypeOf(value)) catch unreachable;
+            const ptr = napigen.allocator.create(@TypeOf(value)) catch unreachable;
             ptr.* = value;
             return js.write(ptr);
         },
