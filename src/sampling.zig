@@ -4,11 +4,11 @@ const ggml = @import("ggml.zig");
 
 const Candidate = struct { id: u32, prob: f32, score: f32 = undefined };
 
-var prng: std.rand.DefaultPrng = undefined;
+var prng: std.Random.DefaultPrng = undefined;
 var random = std.crypto.random;
 
 pub fn sample_seed(seed: u64) void {
-    prng = std.rand.DefaultPrng.init(seed);
+    prng = std.Random.DefaultPrng.init(seed);
     random = prng.random();
 }
 

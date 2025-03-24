@@ -1,6 +1,3 @@
 [submodule "deps/ggml"]
 	path = deps/ggml
 	url = https://github.com/ggerganov/ggml
-[submodule "deps/napigen"]
-	path = deps/napigen
-	url = https://github.com/cztomsik/zig-napigen

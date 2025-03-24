@@ -3,7 +3,7 @@ const ggml = @import("ggml.zig");
 
 pub const SafeTensors = struct {
     file: std.fs.File,
-    memory: []align(std.mem.page_size) const u8,
+    memory: []const u8,
     header: []u8,
     data: []u8,
 };
@@ -18,11 +18,11 @@ pub const TensorMapping = struct {
 pub fn safetensors_open(path: []const u8) !SafeTensors {
     // open the file and mmap it
     const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
-    const memory = try std.os.mmap(
+    const memory = try std.posix.mmap(
         null,
         try file.getEndPos(),
-        std.os.PROT.READ,
-        std.os.MAP.PRIVATE,
+        std.posix.PROT.READ,
+        .{ .TYPE = .PRIVATE },
         file.handle,
         0,
     );

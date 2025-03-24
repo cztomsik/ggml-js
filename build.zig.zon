@@ -1,0 +1,15 @@
+.{
+    .name = .ggml_js,
+    .fingerprint = 0xe720a39624547398,
+    .version = "0.0.1",
+
+    .dependencies = .{
+        .napigen = .{
+            .url = "git+https://github.com/cztomsik/napigen?ref=main#7b393f6728ae6e975ce3eaf8b57bc5dbacb0505f",
+            .hash = "napigen-0.1.0-YpiIuhfjAAC-H5YTlt_xR2iRPlS7wD7dSWPZ29y-FnRk",
+        },
+    },
+    .paths = .{
+        "",
+    },
+}
